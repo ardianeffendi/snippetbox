@@ -13,6 +13,16 @@ func main() {
 	mux.HandleFunc("/snippet", showSnippet)
 	mux.HandleFunc("/snippet/create", createSnippet)
 
+	// Create a file server which serves files out of the "./ui/static" directory
+	// Note that the path given to the http.Dir function is relative to the program
+	// directory root.
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+
+	// Use the mux.Handle() function to register the file server as the handler
+	// all URL paths that start with "/static/". For matching paths, we strip the
+	// "/static" prefix before the request reaches the file server.
+	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+
 	// Use the http.ListenAndServe() function to start a new web server. We pass
 	// two parameters: the TCP network address to listen on. (in this case ":4000")
 	// and the servemux we just created. If the http.ListenAndServe() returns an error
