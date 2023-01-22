@@ -3,14 +3,13 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		app.notFound(w) // use the notFound() helper
 		return
 	}
 
@@ -29,8 +28,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// as a variadic parameter?
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
+		app.serverError(w, err)
 		return
 	}
 
@@ -39,19 +37,18 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// dynamic data that we want to pass in, which for now we'll leave as nil.
 	err = ts.Execute(w, nil)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
+		app.serverError(w, err)
 	}
 }
 
-func showSnippet(w http.ResponseWriter, r *http.Request) {
+func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	// Extract the value of the id parameter from teh query string and try to
 	// convert it to an integer using the strconv.Atoi() function. If it can't
 	// be converted to an integer, or the values is less than 1, we return a 404
 	// not found response
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
-		http.NotFound(w, r)
+		app.notFound(w)
 		return
 	}
 
@@ -60,7 +57,7 @@ func showSnippet(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
 }
 
-func createSnippet(w http.ResponseWriter, r *http.Request) {
+func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	// Use r.Method to check whether the request is using POST or not.
 	// If it's not, use the w.WriteHeader() method to send a 405 status code
 	// the w.Write() method to write a "Method not allowed" response body.
@@ -70,9 +67,7 @@ func createSnippet(w http.ResponseWriter, r *http.Request) {
 		// response header map. The first parameter is the header name, and
 		// the second parameter is the header value.
 		w.Header().Set("Allow", "POST")
-		// Use the http.Error() function to send 405 status code and
-		// "Method Not Allowed" string as the response body.
-		http.Error(w, "Method Not Allowed", 405)
+		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
 

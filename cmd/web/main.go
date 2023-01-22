@@ -1,17 +1,54 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 )
 
+type application struct {
+	errorLog *log.Logger
+	infoLog  *log.Logger
+}
+
 func main() {
+	// Define a new command-line flag with name 'addr', a default value of ":4000"
+	// and some short help text explaining what the flag controls. the value of the
+	// flag will be stored in the addr variable at runtime.
+	addr := flag.String("addr", ":4000", "HTTP network address")
+
+	// Importantly, we use the flag.Parse() function to parse the command-line flag.
+	// This reads in the command-line flag value and assigns it to the addr
+	// variable. You need to call this *before* you use the addr variable
+	// otherwise it will always contain the default value of ":4000". If any erros
+	// are encountered during parsing the application will be terminated.
+	flag.Parse()
+
+	// Use log.New() to create a logger for writing information messages. This takes
+	// three parameters: the destination to write the logs to (os.Stdout), a string
+	// prefix for message (INFO followed by a tab), and flags to indicate what
+	// additional information to include (local date and time). Note that the flags
+	// are joined using the bitwise OR operator |.
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+
+	// Create a logger for writing error messages in the same way, but use stderr as
+	// the destination and use the log.Lshortfile flag to include the relevant
+	// file name and line number.
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	// Initialize a new instance of application containing the dependencies.
+	app := &application{
+		errorLog: errorLog,
+		infoLog:  infoLog,
+	}
+
 	// Use the http.NewServeMux() function to initialize a new serveMux, then
 	// register the home function as the handler for the "/" URL pattern.
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet", showSnippet)
-	mux.HandleFunc("/snippet/create", createSnippet)
+	mux.HandleFunc("/", app.home)
+	mux.HandleFunc("/snippet", app.showSnippet)
+	mux.HandleFunc("/snippet/create", app.createSnippet)
 
 	// Create a file server which serves files out of the "./ui/static" directory
 	// Note that the path given to the http.Dir function is relative to the program
@@ -23,11 +60,14 @@ func main() {
 	// "/static" prefix before the request reaches the file server.
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	// Use the http.ListenAndServe() function to start a new web server. We pass
-	// two parameters: the TCP network address to listen on. (in this case ":4000")
-	// and the servemux we just created. If the http.ListenAndServe() returns an error
-	// we use the log.Fatal() function to log the error message and exit.
-	log.Println("Starting server on: 4000")
-	err := http.ListenAndServe(":4000", mux)
-	log.Fatal(err)
+	srv := &http.Server{
+		Addr:     *addr,
+		ErrorLog: errorLog,
+		Handler:  mux,
+	}
+
+	// Write messages using the tow new loggers, instead of the standard logger.
+	infoLog.Printf("Starting server on %s", *addr)
+	err := srv.ListenAndServe()
+	errorLog.Fatal(err)
 }
