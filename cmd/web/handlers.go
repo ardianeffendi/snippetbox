@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+
+	"github.com/ardianeffendi/snippetbox/pkg/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -13,8 +15,15 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s, err := app.snippets.Latest()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
 	// Intialize a slice containing the paths to the two files. Note that then
 	// home.page.tmpl file must be the *first* file in the slice.
+
 	files := []string{
 		"./ui/html/home.page.tmpl",
 		"./ui/html/base.layout.tmpl",
@@ -27,6 +36,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	// response to the user. Notice that we can pass the slice of file paths
 	// as a variadic parameter?
 	ts, err := template.ParseFiles(files...)
+
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -34,8 +44,9 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	// We then use Execute() method on the template set to write the template
 	// content as the response body. The last parameter to Execute() represents
-	// dynamic data that we want to pass in, which for now we'll leave as nil.
-	err = ts.Execute(w, nil)
+	// dynamic data that we want to pass in.
+	err = ts.Execute(w, s)
+
 	if err != nil {
 		app.serverError(w, err)
 	}
@@ -52,9 +63,38 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use the fmt.Fprintf() function to interpolate the id value with our response
-	// and write it to the http.ResponseWriter
-	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+	// Use the SnippetModel object's Get method to retrieve the data for a
+	// specific record based on its ID. If no matching record is found,
+	// return a 404 Not Found response.
+	s, err := app.snippets.Get(id)
+	if err == models.ErrNoRecord {
+		app.notFound(w)
+		return
+	} else if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Initialise a slice containing the paths to the show.page.tmpl file,
+	// plus the base layout and footer partial that we made earlier.
+	files := []string{
+		"./ui/html/show.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+		"./ui/html/footer.partial.tmpl",
+	}
+
+	// Parse the template files...
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, err)
+	}
+
+	// And then execute them. Notice howe we are passing in the snippet
+	// data ( a models.Snippet struct) as the final parameter.
+	err = ts.Execute(w, s)
+	if err != nil {
+		app.serverError(w, err)
+	}
 }
 
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
