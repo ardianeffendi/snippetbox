@@ -21,9 +21,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create an instance of a templateData struct holding the slice of snippets.
+	data := &templateData{Snippets: s}
+
 	// Intialize a slice containing the paths to the two files. Note that then
 	// home.page.tmpl file must be the *first* file in the slice.
-
 	files := []string{
 		"./ui/html/home.page.tmpl",
 		"./ui/html/base.layout.tmpl",
@@ -45,7 +47,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	// We then use Execute() method on the template set to write the template
 	// content as the response body. The last parameter to Execute() represents
 	// dynamic data that we want to pass in.
-	err = ts.Execute(w, s)
+	err = ts.Execute(w, data)
 
 	if err != nil {
 		app.serverError(w, err)
@@ -75,6 +77,9 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create an instance of a templateData struct holding the snippet data.
+	data := &templateData{Snippet: s}
+
 	// Initialise a slice containing the paths to the show.page.tmpl file,
 	// plus the base layout and footer partial that we made earlier.
 	files := []string{
@@ -91,7 +96,7 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 
 	// And then execute them. Notice howe we are passing in the snippet
 	// data ( a models.Snippet struct) as the final parameter.
-	err = ts.Execute(w, s)
+	err = ts.Execute(w, data)
 	if err != nil {
 		app.serverError(w, err)
 	}
