@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
@@ -21,37 +20,10 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create an instance of a templateData struct holding the slice of snippets.
-	data := &templateData{Snippets: s}
-
-	// Intialize a slice containing the paths to the two files. Note that then
-	// home.page.tmpl file must be the *first* file in the slice.
-	files := []string{
-		"./ui/html/home.page.tmpl",
-		"./ui/html/base.layout.tmpl",
-		"./ui/html/footer.partial.tmpl",
-	}
-
-	// Use the template.ParseFiles() function to read the template file into a
-	// template set. If there's an error, we log the detailed error message and
-	// the http.Error() function to send a generic 500 Internal Server Error
-	// response to the user. Notice that we can pass the slice of file paths
-	// as a variadic parameter?
-	ts, err := template.ParseFiles(files...)
-
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	// We then use Execute() method on the template set to write the template
-	// content as the response body. The last parameter to Execute() represents
-	// dynamic data that we want to pass in.
-	err = ts.Execute(w, data)
-
-	if err != nil {
-		app.serverError(w, err)
-	}
+	// Use the render() function helper
+	app.render(w, r, "home.page.tmpl", &templateData{
+		Snippets: s,
+	})
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
@@ -77,29 +49,9 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create an instance of a templateData struct holding the snippet data.
-	data := &templateData{Snippet: s}
-
-	// Initialise a slice containing the paths to the show.page.tmpl file,
-	// plus the base layout and footer partial that we made earlier.
-	files := []string{
-		"./ui/html/show.page.tmpl",
-		"./ui/html/base.layout.tmpl",
-		"./ui/html/footer.partial.tmpl",
-	}
-
-	// Parse the template files...
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, err)
-	}
-
-	// And then execute them. Notice howe we are passing in the snippet
-	// data ( a models.Snippet struct) as the final parameter.
-	err = ts.Execute(w, data)
-	if err != nil {
-		app.serverError(w, err)
-	}
+	app.render(w, r, "show.page.tmpl", &templateData{
+		Snippet: s,
+	})
 }
 
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
