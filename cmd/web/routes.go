@@ -22,8 +22,6 @@ func (app *application) routes() http.Handler {
 	// "/static" prefix before the request reaches the file server.
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	// Pass the servemux as the 'next' parameter to the secureHeaders middleware.
-	// Because secureHeaders is just a funciton, and the function returns a
-	// http.Handler we don't need to do anything else.
-	return secureHeaders(mux)
+	// Wrap the secureHeaders middleware with the logRequest middleware.
+	return app.logRequest(secureHeaders(mux))
 }
