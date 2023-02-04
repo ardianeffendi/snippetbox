@@ -79,7 +79,6 @@ func main() {
 		Handler:  app.routes(),
 	}
 
-	// Write messages using the tow new loggers, instead of the standard logger.
 	infoLog.Printf("Starting server on %s", *addr)
 	err = srv.ListenAndServe()
 	errorLog.Fatal(err)

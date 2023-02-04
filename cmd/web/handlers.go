@@ -9,11 +9,6 @@ import (
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		app.notFound(w) // use the notFound() helper
-		return
-	}
-
 	s, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
@@ -27,12 +22,8 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
-	// Extract the value of the id parameter from teh query string and try to
-	// convert it to an integer using the strconv.Atoi() function. If it can't
-	// be converted to an integer, or the values is less than 1, we return a 404
-	// not found response
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil {
+	id, err := strconv.Atoi(r.URL.Query().Get(":id"))
+	if err != nil || id < 1 {
 		app.notFound(w)
 		return
 	}
@@ -54,20 +45,11 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
-	// Use r.Method to check whether the request is using POST or not.
-	// If it's not, use the w.WriteHeader() method to send a 405 status code
-	// the w.Write() method to write a "Method not allowed" response body.
-	// We then return from the function so that the subsequent code is not executed
-	if r.Method != "POST" {
-		// Use the Header().Set() method to add an "Allow: POST" header to the
-		// response header map. The first parameter is the header name, and
-		// the second parameter is the header value.
-		w.Header().Set("Allow", "POST")
-		app.clientError(w, http.StatusMethodNotAllowed)
-		return
-	}
+func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Create a new snippet..."))
+}
 
+func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	// Create some variables holding dummy data. We'll remove these later on
 	// during the build.
 	title := "O snail"
@@ -83,5 +65,5 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect the user to the relevant page for the snippet.
-	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
