@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"runtime/debug"
 	"time"
+
+	"github.com/ardianeffendi/snippetbox/pkg/models"
+	"github.com/justinas/nosurf"
 )
 
 // The serverError helper writes an error message and stack trace to the errorLog,
@@ -38,16 +41,21 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 		td = &templateData{}
 	}
 
+	td.CSRFToken = nosurf.Token(r)
 	td.AuthenticatedUser = app.authenticatedUser(r)
 	td.CurrentYear = time.Now().Year()
 	td.Flash = app.session.PopString(r, "flash")
 	return td
 }
 
-// The authenticatedUser method returns the ID of the current user from the
-// session, or zero if the request is from an authenticated user.
-func (app *application) authenticatedUser(r *http.Request) int {
-	return app.session.GetInt(r, "userID")
+// The authenticatedUser returns the User's struct of the current user from
+// context and it returns nil if user is no authenticated and valid user.
+func (app *application) authenticatedUser(r *http.Request) *models.User {
+	user, ok := r.Context().Value(contextKeyUser).(*models.User)
+	if !ok {
+		return nil
+	}
+	return user
 }
 
 func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
