@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/ardianeffendi/snippetbox/pkg/models"
 	"github.com/justinas/nosurf"
 )
 
@@ -47,10 +48,14 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 	return td
 }
 
-// The authenticatedUser method returns the ID of the current user from the
-// session, or zero if the request is from an authenticated user.
-func (app *application) authenticatedUser(r *http.Request) int {
-	return app.session.GetInt(r, "userID")
+// The authenticatedUser returns the User's struct of the current user from
+// context and it returns nil if user is no authenticated and valid user.
+func (app *application) authenticatedUser(r *http.Request) *models.User {
+	user, ok := r.Context().Value(contextKeyUser).(*models.User)
+	if !ok {
+		return nil
+	}
+	return user
 }
 
 func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
